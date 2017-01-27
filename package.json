@@ -1,0 +1,13 @@
+{
+  "name": "oauth_endpoint",
+  "version": "1.0.0",
+  "main": "./oauth_endpoint.js",
+  "description": "Simple Oauth endpoint with token introspection.",
+  "dependencies": {
+    "hapi": "^16.1.0",
+    "hapi-auth-basic": "^4.2.0"
+  },
+  "scripts": {
+    "start": "node oauth_endpoint.js"
+  }
+}
