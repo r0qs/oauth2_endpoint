@@ -19,14 +19,24 @@ const db = {
     username: 'active_user',
     password: 'MTIzNDU=',   // '12345'
     name: 'An active user',
-    id: '00001'
+    id: '00001',
+    type: 'admin'
   },
   // Auth:  inactive_user:1234567 == Basic aW5hY3RpdmVfdXNlcjoxMjM0NTY3
   inactive_user: {
     username: 'inactive_user',
     password: 'MTIzNDU2Nw==',   // '1234567'
     name: 'An inactive user',
-    id: '00002'
+    id: '00002',
+    type: 'inactive'
+  },
+  // Auth:  alibaba:abretesesamo == Basic YWxpYmFiYTphYnJldGVzZXNhbW8=
+  alibaba: {
+    username: 'alibaba',
+    password: 'YWJyZXRlc2VzYW1v', // abretesesamo
+    name: 'A gateway user',
+    id: '00003',
+    type: 'user'
   }
 }
 
@@ -52,18 +62,30 @@ const validate = function (request, username, password, callback) {
   }
 
   if (username === user.username) {
-    // inactive password larger than 5 characters
-    if (password.length > 5) {
-      return callback(null, password === base64.decode(user.password), { "active": false })
+    var token = {}
+    switch (user.type) {
+      case 'admin':
+        token = {
+          active: true,
+          user: user.username,
+          scope: ['create-post', 'take-picture', 'view-picture'],
+          "client-id": user.id
+        }
+        break
+      case 'user':
+        token = {
+          active: true,
+          user: user.username,
+          scope: ['view-picture'],
+          "client-id": user.id
+        }
+        break
+      default:
+        token = { active: false }
     }
-
-    return callback(null, password === base64.decode(user.password), {
-      active: true,
-      user: user.username,
-      scope: "testscope otherscope",
-      "client-id": user.id
-    })
+    return callback(null, password === base64.decode(user.password), token)
   }
+
   return callback(null, false)
 }
 
@@ -74,17 +96,43 @@ server.connection({
 })
 
 server.register(Basic, (err) => {
-  server.auth.strategy('default', 'basic', { validateFunc: validate })
-  server.route({
+  server.auth.strategy('simple', 'basic', { validateFunc: validate })
+  server.route([{
     method: 'POST',
-    path:'/introspect',
+    path:'/introspect/admin',
     config: {
-      auth: 'default',
+      auth: {
+        strategy: 'simple',
+        scope: ['create-post', 'take-picture'],
+      },
       handler: function (request, reply) {
         reply(JSON.stringify(request.auth.credentials))
       }
     }
-  })
+  }, {
+    method: 'POST',
+    path:'/introspect/user',
+    config: {
+      auth: {
+        strategy: 'simple',
+        scope: ['view-picture'],
+      },
+      handler: function (request, reply) {
+        reply(JSON.stringify(request.auth.credentials))
+      }
+    }
+  }, {
+    method: 'POST',
+    path:'/introspect/inactive',
+    config: {
+      auth: {
+        strategy: 'simple'
+      },
+      handler: function (request, reply) {
+        reply(JSON.stringify(request.auth.credentials))
+      }
+    }
+  }])
 })
 
 server.start((err) => {
