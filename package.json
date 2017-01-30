@@ -9,5 +9,8 @@
   },
   "scripts": {
     "start": "node token_introspection_endpoint.js"
+  },
+  "engines": {
+    "node": "7.2.1"
   }
 }

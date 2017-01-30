@@ -95,43 +95,19 @@ server.connection({
   port: 8000
 })
 
-function response_handler(request, reply) {
-  const credentials = JSON.stringify(request.auth.credentials)
-  reply(credentials).type('application/json')
-}
-
 server.register(Basic, (err) => {
   server.auth.strategy('simple', 'basic', { validateFunc: validate })
-  server.route([{
+  server.route({
     method: 'POST',
-    path:'/introspect/admin',
+    path:'/token/introspect',
     config: {
-      auth: {
-        strategy: 'simple',
-        scope: ['create-post', 'take-picture'],
-      },
-      handler: function (request, reply) { response_handler(request, reply) }
+      auth: 'simple',
+      handler: function (request, reply) {
+        const credentials = JSON.stringify(request.auth.credentials)
+        reply(credentials).type('application/json')
+      }
     }
-  }, {
-    method: 'POST',
-    path:'/introspect/user',
-    config: {
-      auth: {
-        strategy: 'simple',
-        scope: ['view-picture'],
-      },
-      handler: function (request, reply) { response_handler(request, reply) }
-    }
-  }, {
-    method: 'POST',
-    path:'/introspect/inactive',
-    config: {
-      auth: {
-        strategy: 'simple'
-      },
-      handler: function (request, reply) { response_handler(request, reply) }
-    }
-  }])
+  })
 })
 
 server.start((err) => {
