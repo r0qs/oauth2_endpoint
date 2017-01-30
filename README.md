@@ -1,6 +1,6 @@
-# Oauth 2.0 token introspection endpoint mock
+# Token introspection endpoint
 
-Simple Oauth2 endpoint server.
+Simple Oauth2 token introspection endpoint server.
 
 Basic tests with valid user
 ```
