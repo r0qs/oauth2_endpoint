@@ -69,7 +69,7 @@ const validate = function (request, username, password, callback) {
           active: true,
           user: user.username,
           scope: ['create-post', 'take-picture', 'view-picture'],
-          "client-id": user.id
+          client_id: user.id
         }
         break
       case 'user':
@@ -77,7 +77,7 @@ const validate = function (request, username, password, callback) {
           active: true,
           user: user.username,
           scope: ['view-picture'],
-          "client-id": user.id
+          client_id: user.id
         }
         break
       default:
@@ -91,9 +91,14 @@ const validate = function (request, username, password, callback) {
 
 const server = new Hapi.Server()
 server.connection({
-  host: 'localhost',
+  host: '0.0.0.0',
   port: 8000
 })
+
+function response_handler(request, reply) {
+  const credentials = JSON.stringify(request.auth.credentials)
+  reply(credentials).type('application/json')
+}
 
 server.register(Basic, (err) => {
   server.auth.strategy('simple', 'basic', { validateFunc: validate })
@@ -105,9 +110,7 @@ server.register(Basic, (err) => {
         strategy: 'simple',
         scope: ['create-post', 'take-picture'],
       },
-      handler: function (request, reply) {
-        reply(JSON.stringify(request.auth.credentials))
-      }
+      handler: function (request, reply) { response_handler(request, reply) }
     }
   }, {
     method: 'POST',
@@ -117,9 +120,7 @@ server.register(Basic, (err) => {
         strategy: 'simple',
         scope: ['view-picture'],
       },
-      handler: function (request, reply) {
-        reply(JSON.stringify(request.auth.credentials))
-      }
+      handler: function (request, reply) { response_handler(request, reply) }
     }
   }, {
     method: 'POST',
@@ -128,9 +129,7 @@ server.register(Basic, (err) => {
       auth: {
         strategy: 'simple'
       },
-      handler: function (request, reply) {
-        reply(JSON.stringify(request.auth.credentials))
-      }
+      handler: function (request, reply) { response_handler(request, reply) }
     }
   }])
 })
