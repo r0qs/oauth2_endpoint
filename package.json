@@ -8,7 +8,7 @@
     "hapi-auth-basic": "^4.2.0"
   },
   "scripts": {
-    "start": "node token_introspection_endpoint.js"
+    "start": "node --harmony token_introspection_endpoint.js"
   },
   "engines": {
     "node": "7.2.1"

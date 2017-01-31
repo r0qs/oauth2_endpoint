@@ -61,6 +61,8 @@ const validate = function (request, username, password, callback) {
     return callback(null, false)
   }
 
+  console.log(user)
+
   if (username === user.username) {
     var token = {}
     switch (user.type) {
@@ -68,7 +70,7 @@ const validate = function (request, username, password, callback) {
         token = {
           active: true,
           user: user.username,
-          scope: ['create-post', 'take-picture', 'view-picture'],
+          scope: "create-post, take-picture, view-picture",
           client_id: user.id
         }
         break
@@ -76,7 +78,7 @@ const validate = function (request, username, password, callback) {
         token = {
           active: true,
           user: user.username,
-          scope: ['view-picture'],
+          scope: "view-picture",
           client_id: user.id
         }
         break
@@ -104,6 +106,7 @@ server.register(Basic, (err) => {
       auth: 'simple',
       handler: function (request, reply) {
         const credentials = JSON.stringify(request.auth.credentials)
+        console.log('Token request received with credentials: %s', credentials)
         reply(credentials).type('application/json')
       }
     }
