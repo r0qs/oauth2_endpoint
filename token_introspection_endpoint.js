@@ -32,7 +32,7 @@ const AuthorizationUtils = {
       case 'valid-grant-token':
         token = {
           active: true,
-          scope: "read-all, read-mall",
+          scope: "read-all, read-small",
           client_id: '0001'
         }
         break
