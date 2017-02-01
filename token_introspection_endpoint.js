@@ -1,94 +1,66 @@
 'use strict'
 
 const Hapi = require('hapi')
-const Basic = require('hapi-auth-basic')
+const Boom = require('boom')
 
-const base64 = {
-  encode: (object) => {
-    return new Buffer(object, 'utf8').toString('base64')
+const AuthorizationUtils = {
+  encode: (uid, accessToken) => {
+    return new Buffer(`${uid}:${accessToken}`).toString('base64')
   },
-  decode: (object) => {
-    return new Buffer(object, 'base64').toString('utf8')
-  }
-}
-
-// Mocked database
-const db = {
-  // Auth:  active_user:12345 == Basic YWN0aXZlX3VzZXI6MTIzNDU=
-  active_user: {
-    username: 'active_user',
-    password: 'MTIzNDU=',   // '12345'
-    name: 'An active user',
-    id: '00001',
-    type: 'admin'
+  decode: (encoded) => {
+    let decoded = new Buffer(encoded, 'base64').toString('ascii')
+    decoded = decoded.split(':')
+    return decoded.length === 2 ? { username: decoded[0], password: decoded[1] } : { password: decoded[0] }
   },
-  // Auth:  inactive_user:1234567 == Basic aW5hY3RpdmVfdXNlcjoxMjM0NTY3
-  inactive_user: {
-    username: 'inactive_user',
-    password: 'MTIzNDU2Nw==',   // '1234567'
-    name: 'An inactive user',
-    id: '00002',
-    type: 'inactive'
+  decodeAuthorizationHeader: (header) => {
+    const encoded = header.replace(/\w*\s/, '')
+    return AuthorizationUtils.decode(encoded)
   },
-  // Auth:  alibaba:abretesesamo == Basic YWxpYmFiYTphYnJldGVzZXNhbW8=
-  alibaba: {
-    username: 'alibaba',
-    password: 'YWJyZXRlc2VzYW1v', // abretesesamo
-    name: 'A gateway user',
-    id: '00003',
-    type: 'user'
-  }
-}
-
-const internals = {}
-
-internals.header = function (username, password) {
-  return 'Basic ' + base64.encode(username + ':' + password)
-}
-
-internals.show_user_data = function (username, password) {
-  console.log('Auth: ', internals.header(username, password))
-  console.log('User: ', username)
-  console.log('Password: ', base64.encode(password))
-}
-
-// internals.how_user_data('active_user', '12345')
-// internals.show_user_data('inactive_user', '1234567')
-
-const validate = function (request, username, password, callback) {
-  const user = db[username]
-  if (!user) {
-    return callback(null, false)
-  }
-
-  console.log(user)
-
-  if (username === user.username) {
+  extractTokenFromRequest: (request) => {
+    //TODO: validate request fields
+    const authorization = request.headers.authorization
+    if (!authorization) {
+      return reply(Boom.unauthorized('Authorization Header not allowed'))
+    }
+    const credentials = AuthorizationUtils.decodeAuthorizationHeader(authorization)
+    const tokenCredentials = new Buffer(request.payload.token, 'base64').toString('ascii')
+    return validate(credentials) ? AuthorizationUtils.buildToken(tokenCredentials) : null
+  },
+  buildToken: (credentials) => {
     var token = {}
-    switch (user.type) {
-      case 'admin':
+    switch (credentials) {
+      case 'valid-grant-token':
         token = {
           active: true,
-          user: user.username,
-          scope: "create-post, take-picture, view-picture",
-          client_id: user.id
+          scope: "read-all, read-mall",
+          client_id: '0001'
         }
         break
-      case 'user':
+      case 'valid-token':
         token = {
           active: true,
-          user: user.username,
-          scope: "view-picture",
-          client_id: user.id
+          scope: "read_small",
+          client_id: '0002'
         }
         break
       default:
         token = { active: false }
     }
-    return callback(null, password === base64.decode(user.password), token)
+    return token
   }
+}
 
-  return callback(null, false)
+// console.log(new Buffer('valid-grant-token').toString('base64'))
+// console.log(new Buffer('valid-token').toString('base64'))
+// console.log(new Buffer('invalid').toString('base64'))
+
+function authorize (request) {
+  return AuthorizationUtils.extractTokenFromRequest(request)
+}
+
+const validate = function (credentials) {
+  //TODO: handle http errors
+  return credentials.username == 'admin' && credentials.password == 'admin'
 }
 
 const server = new Hapi.Server()
@@ -97,21 +69,18 @@ server.connection({
   port: 8000
 })
 
-server.register(Basic, (err) => {
-  server.auth.strategy('simple', 'basic', { validateFunc: validate })
-  server.route({
-    method: 'POST',
-    path:'/token/introspect',
-    config: {
-      auth: 'simple',
-      handler: function (request, reply) {
-        const credentials = JSON.stringify(request.auth.credentials)
-        console.log('Token request received with credentials: %s', credentials)
-        reply(credentials).type('application/json')
-      }
+
+server.route({
+  method: 'POST',
+  path:'/token/introspect',
+  config: {
+    handler: function (request, reply) {
+      const token = authorize(request)
+      reply(token).type('application/json')
     }
-  })
+  }
 })
+
 
 server.start((err) => {
   if (err) {
