@@ -24,14 +24,14 @@ function buildToken(credentials) {
     case 'valid-grant-token':
       token = {
         active: true,
-        scope: "read-all, read-small",
+        scope: "read-all read-small",
         client_id: '0001'
       }
       break
     case 'valid-token':
       token = {
         active: true,
-        scope: "read_small",
+        scope: "read-small",
         client_id: '0002'
       }
       break
@@ -61,8 +61,7 @@ function authorize (request, reply) {
     return reply(Boom.unauthorized('Bad username or password'))
   }
 
-  const token = new Buffer(payload.token, 'base64').toString('ascii')
-  return reply(buildToken(token)).type('application/json')
+  return reply(buildToken(payload.token)).type('application/json')
 }
 
 const validate = function (credentials) {
