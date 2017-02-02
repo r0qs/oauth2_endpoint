@@ -3,63 +3,69 @@
 const Hapi = require('hapi')
 const Boom = require('boom')
 
-const AuthorizationUtils = {
-  encode: (uid, accessToken) => {
-    return new Buffer(`${uid}:${accessToken}`).toString('base64')
-  },
-  decode: (encoded) => {
-    let decoded = new Buffer(encoded, 'base64').toString('ascii')
-    decoded = decoded.split(':')
-    return decoded.length === 2 ? { username: decoded[0], password: decoded[1] } : { password: decoded[0] }
-  },
-  decodeAuthorizationHeader: (header) => {
-    const encoded = header.replace(/\w*\s/, '')
-    return AuthorizationUtils.decode(encoded)
-  },
-  extractTokenFromRequest: (request) => {
-    //TODO: validate request fields
-    const authorization = request.headers.authorization
-    if (!authorization) {
-      return reply(Boom.unauthorized('Authorization Header not allowed'))
-    }
-    const credentials = AuthorizationUtils.decodeAuthorizationHeader(authorization)
-    const tokenCredentials = new Buffer(request.payload.token, 'base64').toString('ascii')
-    return validate(credentials) ? AuthorizationUtils.buildToken(tokenCredentials) : null
-  },
-  buildToken: (credentials) => {
-    var token = {}
-    switch (credentials) {
-      case 'valid-grant-token':
-        token = {
-          active: true,
-          scope: "read-all, read-small",
-          client_id: '0001'
-        }
-        break
-      case 'valid-token':
-        token = {
-          active: true,
-          scope: "read_small",
-          client_id: '0002'
-        }
-        break
-      default:
-        token = { active: false }
-    }
-    return token
-  }
+function encode(username, password) {
+  return new Buffer(`${username}:${password}`).toString('base64')
 }
 
-// console.log(new Buffer('valid-grant-token').toString('base64'))
-// console.log(new Buffer('valid-token').toString('base64'))
-// console.log(new Buffer('invalid').toString('base64'))
+function decode(encoded) {
+  let decoded = new Buffer(encoded, 'base64').toString('ascii')
+  decoded = decoded.split(':')
+  return decoded.length === 2 ? { username: decoded[0], password: decoded[1] } : { password: decoded[0] }
+}
 
-function authorize (request) {
-  return AuthorizationUtils.extractTokenFromRequest(request)
+function decodeAuthorizationHeader(header) {
+  const encoded = header.replace(/\w*\s/, '')
+  return decode(encoded)
+}
+
+function buildToken(credentials) {
+  var token = {}
+  switch (credentials) {
+    case 'valid-grant-token':
+      token = {
+        active: true,
+        scope: "read-all, read-small",
+        client_id: '0001'
+      }
+      break
+    case 'valid-token':
+      token = {
+        active: true,
+        scope: "read_small",
+        client_id: '0002'
+      }
+      break
+    default:
+      token = { active: false }
+  }
+  return token
+}
+
+function authorize (request, reply) {
+  const payload = request.payload
+  if (!payload) {
+    return reply(Boom.unauthorized('Credentials must be provided'))
+  }
+
+  if (!payload.token) {
+    return reply(Boom.unauthorized('Credentials must be provided'))
+  }
+
+  const authorization = request.headers.authorization
+  if (!authorization) {
+    return reply(Boom.unauthorized('Authorization Header not allowed'))
+  }
+  const credentials = decodeAuthorizationHeader(authorization)
+
+  if (!validate(credentials)) {
+    return reply(Boom.unauthorized('Bad username or password'))
+  }
+
+  const token = new Buffer(payload.token, 'base64').toString('ascii')
+  return reply(buildToken(token)).type('application/json')
 }
 
 const validate = function (credentials) {
-  //TODO: handle http errors
   return credentials.username == 'admin' && credentials.password == 'admin'
 }
 
@@ -74,10 +80,7 @@ server.route({
   method: 'POST',
   path:'/token/introspect',
   config: {
-    handler: function (request, reply) {
-      const token = authorize(request)
-      reply(token).type('application/json')
-    }
+    handler: function (request, reply) { authorize(request, reply) }
   }
 })
 
