@@ -20,7 +20,7 @@ function decodeAuthorizationHeader(header) {
 
 function buildToken(token) {
   var authToken = {}
-  token = new Buffer(token, 'base64').toString('utf8')
+  //token = new Buffer(token, 'base64').toString('utf8')
   switch (token) {
     case 'valid-grant-token':
       authToken = {
@@ -49,11 +49,11 @@ function buildToken(token) {
 function authorize (request, reply) {
   const payload = request.payload
   if (!payload) {
-    return reply(Boom.unauthorized('Credentials must be provided'))
+    return reply(Boom.badRequest('Credentials must be provided'))
   }
 
   if (!payload.token) {
-    return reply(Boom.unauthorized('Credentials must be provided'))
+    return reply(Boom.badRequest('Credentials must be provided'))
   }
 
   const authorization = request.headers.authorization
