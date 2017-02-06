@@ -8,7 +8,7 @@ function encode(username, password) {
 }
 
 function decode(encoded) {
-  let decoded = new Buffer(encoded, 'base64').toString('ascii')
+  let decoded = new Buffer(encoded, 'base64').toString('utf8')
   decoded = decoded.split(':')
   return decoded.length === 2 ? { username: decoded[0], password: decoded[1] } : { password: decoded[0] }
 }
@@ -18,27 +18,32 @@ function decodeAuthorizationHeader(header) {
   return decode(encoded)
 }
 
-function buildToken(credentials) {
-  var token = {}
-  switch (credentials) {
+function buildToken(token) {
+  var authToken = {}
+  token = new Buffer(token, 'base64').toString('utf8')
+  switch (token) {
     case 'valid-grant-token':
-      token = {
+      authToken = {
         active: true,
         scope: "read-all read-small",
-        client_id: '0001'
+        client_id: '0001',
+        secret: 'You should not know', //extention_fields
+        someId: 1
       }
       break
     case 'valid-token':
-      token = {
+      authToken = {
         active: true,
         scope: "read-small",
-        client_id: '0002'
+        client_id: '0002',
+        secret: 'You should not know',
+        someId: 2
       }
       break
     default:
-      token = { active: false }
+      authToken = { active: false }
   }
-  return token
+  return authToken
 }
 
 function authorize (request, reply) {

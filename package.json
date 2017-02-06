@@ -4,8 +4,8 @@
   "main": "./token_introspection_endpoint.js",
   "description": "Simple Oauth 2.0 endpoint with token introspection.",
   "dependencies": {
-    "hapi": "^16.1.0",
-    "hapi-auth-basic": "^4.2.0"
+    "boom": "^4.2.0",
+    "hapi": "^16.1.0"
   },
   "scripts": {
     "start": "node --harmony token_introspection_endpoint.js"
