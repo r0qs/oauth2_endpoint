@@ -86,7 +86,10 @@ function fbauthorize(request, reply) {
 
   const url = `https://graph.facebook.com/me?access_token=${payload.token}`
   Request(url, (error, response, body) => {
-    if (!error && response.statusCode == 200) {
+    if (error) {
+      return reply(Boom.badRequest('Bad response from Facebook'))
+    }
+    if (response.statusCode == 200) {
       const result = JSON.parse(body)
       const token = {
         active: true,
@@ -96,7 +99,7 @@ function fbauthorize(request, reply) {
       }
       return reply(token).type('application/json')
     }
-    return reply(Boom.badRequest('Bad response from Facebook'))
+    return reply({ active: false }).type('application/json')
   })
 }
 
